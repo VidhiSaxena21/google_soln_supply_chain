@@ -356,6 +356,15 @@ export async function customFetch<T = unknown>(
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
     }
+  } else if (!headers.has("authorization")) {
+    try {
+      const token = localStorage.getItem("chaintrack_token");
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+    } catch (err) {
+      // Ignore localStorage errors in non-browser environments
+    }
   }
 
   const requestInfo = { method, url: resolveUrl(input) };

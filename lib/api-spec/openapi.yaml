@@ -1,22 +1,39 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ChainTrack Supply Chain Transparency Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: users
+    description: User management
+  - name: requests
+    description: Service request operations
+  - name: agreements
+    description: Digital agreement operations
+  - name: tracking
+    description: Status tracking operations
+  - name: ratings
+    description: Ratings and reviews
+  - name: disputes
+    description: Dispute management
+  - name: dashboard
+    description: Dashboard summary data
+  - name: notifications
+    description: Notifications
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +41,1067 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /requests:
+    get:
+      operationId: listRequests
+      tags: [requests]
+      summary: List service requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [requested, accepted, in_progress, completed, cancelled]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [customer, provider]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestList"
+
+    post:
+      operationId: createRequest
+      tags: [requests]
+      summary: Create a service request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRequestBody"
+      responses:
+        "201":
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRequest"
+
+  /requests/estimate:
+    post:
+      operationId: estimatePrice
+      tags: [requests]
+      summary: Get smart price estimate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateBody"
+      responses:
+        "200":
+          description: Price estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceEstimate"
+
+  /requests/available:
+    get:
+      operationId: listAvailableRequests
+      tags: [requests]
+      summary: List available requests for providers to accept
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Available requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestList"
+
+  /requests/{id}:
+    get:
+      operationId: getRequest
+      tags: [requests]
+      summary: Get request by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Request detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRequest"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /requests/{id}/status:
+    patch:
+      operationId: updateRequestStatus
+      tags: [requests]
+      summary: Update request status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStatusBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRequest"
+
+  /requests/{id}/accept:
+    post:
+      operationId: acceptRequest
+      tags: [requests]
+      summary: Provider accepts a request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRequest"
+
+  /agreements:
+    get:
+      operationId: listAgreements
+      tags: [agreements]
+      summary: List agreements
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of agreements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgreementList"
+
+  /agreements/{requestId}:
+    get:
+      operationId: getAgreement
+      tags: [agreements]
+      summary: Get agreement for a request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Agreement detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agreement"
+
+  /agreements/{requestId}/sign:
+    post:
+      operationId: signAgreement
+      tags: [agreements]
+      summary: Sign a digital agreement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Signed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agreement"
+
+  /tracking/{requestId}:
+    get:
+      operationId: getTracking
+      tags: [tracking]
+      summary: Get tracking updates for a request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tracking data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackingData"
+
+    post:
+      operationId: addTrackingUpdate
+      tags: [tracking]
+      summary: Add a tracking update (provider only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackingUpdateBody"
+      responses:
+        "201":
+          description: Update added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackingUpdate"
+
+  /ratings:
+    post:
+      operationId: createRating
+      tags: [ratings]
+      summary: Submit a rating
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRatingBody"
+      responses:
+        "201":
+          description: Rating submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+
+  /ratings/user/{userId}:
+    get:
+      operationId: getUserRatings
+      tags: [ratings]
+      summary: Get ratings for a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User ratings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingList"
+
+  /disputes:
+    get:
+      operationId: listDisputes
+      tags: [disputes]
+      summary: List disputes
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Disputes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeList"
+
+    post:
+      operationId: createDispute
+      tags: [disputes]
+      summary: Raise a dispute
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDisputeBody"
+      responses:
+        "201":
+          description: Dispute raised
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  /disputes/{id}:
+    get:
+      operationId: getDispute
+      tags: [disputes]
+      summary: Get dispute by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dispute detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  /disputes/{id}/resolve:
+    patch:
+      operationId: resolveDispute
+      tags: [disputes]
+      summary: Resolve a dispute
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveDisputeBody"
+      responses:
+        "200":
+          description: Resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  /dashboard/customer:
+    get:
+      operationId: getCustomerDashboard
+      tags: [dashboard]
+      summary: Get customer dashboard summary
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Customer dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDashboard"
+
+  /dashboard/provider:
+    get:
+      operationId: getProviderDashboard
+      tags: [dashboard]
+      summary: Get provider dashboard summary
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Provider dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderDashboard"
+
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationList"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark notification as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    RegisterBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum: [customer, provider]
+        phone:
+          type: string
+        vehicleType:
+          type: string
+          nullable: true
+      required: [name, email, password, role]
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required: [token, user]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [customer, provider]
+        phone:
+          type: string
+          nullable: true
+        vehicleType:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        rating:
+          type: number
+          nullable: true
+        totalRatings:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, email, role, totalRatings, createdAt]
+
+    CreateRequestBody:
+      type: object
+      properties:
+        pickupLocation:
+          type: string
+        dropLocation:
+          type: string
+        pickupLat:
+          type: number
+          nullable: true
+        pickupLng:
+          type: number
+          nullable: true
+        dropLat:
+          type: number
+          nullable: true
+        dropLng:
+          type: number
+          nullable: true
+        description:
+          type: string
+        serviceType:
+          type: string
+          enum: [delivery, transport, logistics]
+        offeredPrice:
+          type: number
+          nullable: true
+        distanceKm:
+          type: number
+          nullable: true
+        scheduledAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [pickupLocation, dropLocation, description, serviceType]
+
+    EstimateBody:
+      type: object
+      properties:
+        pickupLocation:
+          type: string
+        dropLocation:
+          type: string
+        distanceKm:
+          type: number
+        serviceType:
+          type: string
+          enum: [delivery, transport, logistics]
+      required: [pickupLocation, dropLocation, distanceKm, serviceType]
+
+    PriceEstimate:
+      type: object
+      properties:
+        baseFare:
+          type: number
+        distanceCharge:
+          type: number
+        serviceFee:
+          type: number
+        total:
+          type: number
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              amount:
+                type: number
+            required: [label, amount]
+        distanceKm:
+          type: number
+      required: [baseFare, distanceCharge, serviceFee, total, breakdown, distanceKm]
+
+    ServiceRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        customerId:
+          type: integer
+        providerId:
+          type: integer
+          nullable: true
+        pickupLocation:
+          type: string
+        dropLocation:
+          type: string
+        pickupLat:
+          type: number
+          nullable: true
+        pickupLng:
+          type: number
+          nullable: true
+        dropLat:
+          type: number
+          nullable: true
+        dropLng:
+          type: number
+          nullable: true
+        description:
+          type: string
+        serviceType:
+          type: string
+          enum: [delivery, transport, logistics]
+        status:
+          type: string
+          enum: [requested, accepted, in_progress, completed, cancelled]
+        offeredPrice:
+          type: number
+          nullable: true
+        agreedPrice:
+          type: number
+          nullable: true
+        distanceKm:
+          type: number
+          nullable: true
+        scheduledAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        customer:
+          $ref: "#/components/schemas/User"
+        provider:
+          $ref: "#/components/schemas/User"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, customerId, pickupLocation, dropLocation, description, serviceType, status, createdAt, updatedAt, customer]
+
+    RequestList:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceRequest"
+        total:
+          type: integer
+      required: [requests, total]
+
+    UpdateStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [in_progress, completed, cancelled]
+      required: [status]
+
+    Agreement:
+      type: object
+      properties:
+        id:
+          type: integer
+        requestId:
+          type: integer
+        terms:
+          type: string
+        agreedPrice:
+          type: number
+        customerSigned:
+          type: boolean
+        providerSigned:
+          type: boolean
+        customerSignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        providerSignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        fullyExecuted:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, requestId, terms, agreedPrice, customerSigned, providerSigned, fullyExecuted, createdAt]
+
+    AgreementList:
+      type: object
+      properties:
+        agreements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Agreement"
+      required: [agreements]
+
+    TrackingUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+        requestId:
+          type: integer
+        status:
+          type: string
+        message:
+          type: string
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, requestId, status, message, createdAt]
+
+    TrackingData:
+      type: object
+      properties:
+        requestId:
+          type: integer
+        currentStatus:
+          type: string
+        updates:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackingUpdate"
+        currentLat:
+          type: number
+          nullable: true
+        currentLng:
+          type: number
+          nullable: true
+      required: [requestId, currentStatus, updates]
+
+    TrackingUpdateBody:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+      required: [status, message]
+
+    Rating:
+      type: object
+      properties:
+        id:
+          type: integer
+        requestId:
+          type: integer
+        raterId:
+          type: integer
+        ratedUserId:
+          type: integer
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        review:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, requestId, raterId, ratedUserId, score, createdAt]
+
+    RatingList:
+      type: object
+      properties:
+        ratings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rating"
+        averageScore:
+          type: number
+        totalCount:
+          type: integer
+      required: [ratings, averageScore, totalCount]
+
+    CreateRatingBody:
+      type: object
+      properties:
+        requestId:
+          type: integer
+        ratedUserId:
+          type: integer
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        review:
+          type: string
+          nullable: true
+      required: [requestId, ratedUserId, score]
+
+    Dispute:
+      type: object
+      properties:
+        id:
+          type: integer
+        requestId:
+          type: integer
+        raisedById:
+          type: integer
+        reason:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [open, under_review, resolved, closed]
+        resolution:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        request:
+          $ref: "#/components/schemas/ServiceRequest"
+          nullable: true
+      required: [id, requestId, raisedById, reason, description, status, createdAt]
+
+    DisputeList:
+      type: object
+      properties:
+        disputes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Dispute"
+      required: [disputes]
+
+    CreateDisputeBody:
+      type: object
+      properties:
+        requestId:
+          type: integer
+        reason:
+          type: string
+        description:
+          type: string
+      required: [requestId, reason, description]
+
+    ResolveDisputeBody:
+      type: object
+      properties:
+        resolution:
+          type: string
+        status:
+          type: string
+          enum: [resolved, closed]
+      required: [resolution, status]
+
+    CustomerDashboard:
+      type: object
+      properties:
+        totalRequests:
+          type: integer
+        activeRequests:
+          type: integer
+        completedRequests:
+          type: integer
+        totalSpent:
+          type: number
+        recentRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceRequest"
+        openDisputes:
+          type: integer
+      required: [totalRequests, activeRequests, completedRequests, totalSpent, recentRequests, openDisputes]
+
+    ProviderDashboard:
+      type: object
+      properties:
+        totalDeliveries:
+          type: integer
+        activeDeliveries:
+          type: integer
+        completedDeliveries:
+          type: integer
+        totalEarnings:
+          type: number
+        averageRating:
+          type: number
+        recentDeliveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceRequest"
+        openDisputes:
+          type: integer
+        pendingRequests:
+          type: integer
+      required: [totalDeliveries, activeDeliveries, completedDeliveries, totalEarnings, averageRating, recentDeliveries, openDisputes, pendingRequests]
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        requestId:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, userId, type, title, message, isRead, createdAt]
+
+    NotificationList:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        unreadCount:
+          type: integer
+      required: [notifications, unreadCount]
