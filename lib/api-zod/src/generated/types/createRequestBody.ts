@@ -8,6 +8,21 @@
 import type { CreateRequestBodyServiceType } from "./createRequestBodyServiceType";
 
 export interface CreateRequestBody {
+  receiverName: string;
+  receiverPhone: string;
+  receiverEmail: string;
+  receiverBusiness?: string | null;
+  consignmentId: string;
+  bookingReference: string;
+  invoiceReference?: string | null;
+  originStation: string;
+  destinationStation: string;
+  expectedUnloadStation: string;
+  trainReference: string;
+  coachOrWagon?: string | null;
+  cargoCategory: string;
+  declaredValue?: number | null;
+  riskNote?: string | null;
   pickupLocation: string;
   dropLocation: string;
   pickupLat?: number | null;

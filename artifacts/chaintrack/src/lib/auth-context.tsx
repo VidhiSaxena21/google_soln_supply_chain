@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { type PortalRole } from "@/lib/utils";
 
-interface User {
+export interface User {
   id: number;
   name: string;
   email: string;
-  role: "customer" | "provider";
+  role: PortalRole;
   phone?: string | null;
   vehicleType?: string | null;
   avatarUrl?: string | null;
@@ -23,6 +24,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function normalizeRole(role: string): PortalRole {
+  if (role === "customer") return "shipper";
+  if (role === "provider") return "train_staff";
+  if (role === "shipper" || role === "receiver" || role === "railway_monitor" || role === "train_staff") {
+    return role;
+  }
+  return "shipper";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -33,8 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUser = localStorage.getItem("chaintrack_user");
     if (storedToken && storedUser) {
       try {
+        const parsedUser = JSON.parse(storedUser) as User & { role: string };
+        const normalizedUser = { ...parsedUser, role: normalizeRole(parsedUser.role) } as User;
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(normalizedUser);
+        localStorage.setItem("chaintrack_user", JSON.stringify(normalizedUser));
       } catch {
         localStorage.removeItem("chaintrack_token");
         localStorage.removeItem("chaintrack_user");
@@ -44,10 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   function login(newToken: string, newUser: User) {
+    const normalizedUser = { ...newUser, role: normalizeRole(newUser.role) };
     localStorage.setItem("chaintrack_token", newToken);
-    localStorage.setItem("chaintrack_user", JSON.stringify(newUser));
+    localStorage.setItem("chaintrack_user", JSON.stringify(normalizedUser));
     setToken(newToken);
-    setUser(newUser);
+    setUser(normalizedUser);
   }
 
   function logout() {

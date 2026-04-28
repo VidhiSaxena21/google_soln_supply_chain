@@ -10,6 +10,8 @@ export type RegisterBodyRole =
   (typeof RegisterBodyRole)[keyof typeof RegisterBodyRole];
 
 export const RegisterBodyRole = {
-  customer: "customer",
-  provider: "provider",
+  shipper: "shipper",
+  receiver: "receiver",
+  railway_monitor: "railway_monitor",
+  train_staff: "train_staff",
 } as const;

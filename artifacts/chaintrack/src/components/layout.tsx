@@ -1,120 +1,278 @@
+import { type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { useListNotifications, getListNotificationsQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useListNotifications } from "@workspace/api-client-react";
 import {
-  LayoutDashboard,
-  Package,
-  FileText,
   AlertTriangle,
   Bell,
+  FileSignature,
+  FileText,
+  LayoutDashboard,
   LogOut,
-  Truck,
-  ChevronRight,
   MapPin,
+  Menu,
+  Package,
+  Radar,
+  ShieldCheck,
   Star,
+  TrainFront,
+  UserRoundCheck,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { type ReactNode } from "react";
+import { cn, getPortalLabel, getRoleDescription, getRoleLabel, type PortalRole } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
 
-const customerNav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/requests", label: "My Requests", icon: Package },
-  { href: "/agreements", label: "Agreements", icon: FileText },
-  { href: "/disputes", label: "Disputes", icon: AlertTriangle },
-  { href: "/notifications", label: "Notifications", icon: Bell },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+};
+
+const navByRole: Record<PortalRole, NavItem[]> = {
+  shipper: [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/requests/new", label: "New Consignment", icon: TrainFront },
+    { href: "/requests", label: "My Consignments", icon: Package },
+    { href: "/agreements", label: "Agreements", icon: FileText },
+    { href: "/disputes", label: "Disputes", icon: AlertTriangle },
+    { href: "/notifications", label: "Notifications", icon: Bell },
+  ],
+  receiver: [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/requests", label: "Incoming Cargo", icon: Package },
+    { href: "/agreements", label: "Agreements", icon: FileText },
+    { href: "/disputes", label: "Disputes", icon: AlertTriangle },
+    { href: "/notifications", label: "Notifications", icon: Bell },
+  ],
+  railway_monitor: [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/requests", label: "Monitor Queue", icon: Radar },
+    { href: "/agreements", label: "Agreements", icon: FileText },
+    { href: "/disputes", label: "Disputes", icon: AlertTriangle },
+    { href: "/notifications", label: "Notifications", icon: Bell },
+  ],
+  train_staff: [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/requests", label: "Cargo Queue", icon: TrainFront },
+    { href: "/agreements", label: "Agreements", icon: FileText },
+    { href: "/disputes", label: "Disputes", icon: AlertTriangle },
+    { href: "/notifications", label: "Notifications", icon: Bell },
+  ],
+};
+
+const trustSignals = [
+  {
+    icon: ShieldCheck,
+    label: "Route accountability",
+    body: "Origin, train reference, expected unload station, and receiver details stay attached to the consignment.",
+  },
+  {
+    icon: FileSignature,
+    label: "Recorded evidence",
+    body: "Agreements and checkpoint updates reduce the chance of coercion or unofficial charge disputes becoming invisible.",
+  },
+  {
+    icon: UserRoundCheck,
+    label: "Shared visibility",
+    body: "Shipper, receiver, train staff, and railway monitor can each work from the same record instead of fragmented calls.",
+  },
 ];
 
-const providerNav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/requests", label: "Jobs", icon: Truck },
-  { href: "/agreements", label: "Agreements", icon: FileText },
-  { href: "/disputes", label: "Disputes", icon: AlertTriangle },
-  { href: "/notifications", label: "Notifications", icon: Bell },
-];
+function NavLinks({
+  nav,
+  location,
+  unreadCount,
+}: {
+  nav: NavItem[];
+  location: string;
+  unreadCount: number;
+}) {
+  return (
+    <nav className="space-y-1">
+      {nav.map(({ href, label, icon: Icon }) => {
+        const active = location === href || (href !== "/" && location.startsWith(href));
+        const isNotif = href === "/notifications";
+
+        return (
+          <Link key={href} href={href}>
+            <div
+              data-testid={`nav-${label.toLowerCase().replace(/\s/g, "-")}`}
+              className={cn(
+                "group flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-all",
+                active
+                  ? "border border-cyan-400/30 bg-cyan-400/15 text-white shadow-[0_0_0_1px_rgba(34,211,238,0.1)]"
+                  : "border border-transparent text-slate-400 hover:border-white/10 hover:bg-white/5 hover:text-white",
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="flex-1">{label}</span>
+              {isNotif && unreadCount > 0 && (
+                <span className="min-w-[20px] rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-xs text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
-  const qc = useQueryClient();
-
+  const isMobile = useIsMobile();
   const { data: notifData } = useListNotifications();
   const unreadCount = notifData?.unreadCount ?? 0;
 
-  const nav = user?.role === "provider" ? providerNav : customerNav;
+  const role = user?.role ?? "shipper";
+  const nav = navByRole[role];
+  const roleLabel = getPortalLabel(role);
+  const roleDescription = getRoleDescription(role);
 
   return (
-    <div className="flex min-h-screen bg-slate-950">
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
+    <div className="min-h-screen bg-slate-950 text-white">
+      <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.1),transparent_20%),linear-gradient(180deg,#020617_0%,#0f172a_100%)]">
+        <aside className="hidden w-80 shrink-0 flex-col border-r border-white/10 bg-slate-950/85 px-5 py-5 backdrop-blur lg:flex">
+          <div className="mb-6 rounded-[28px] border border-white/10 bg-white/5 p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 shadow-[0_0_36px_rgba(34,211,238,0.25)]">
+                <MapPin className="h-5 w-5 text-slate-950" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-200">ChainTrack</div>
+                <div className="text-xs text-slate-400">{roleLabel}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-white font-bold text-sm tracking-wide">ChainTrack</div>
-              <div className="text-slate-500 text-xs capitalize">{user?.role}</div>
+            <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/10 p-4 text-sm leading-6 text-slate-200">
+              {roleDescription}
             </div>
           </div>
-        </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {nav.map(({ href, label, icon: Icon }) => {
-            const active = location === href || (href !== "/" && location.startsWith(href));
-            const isNotif = href === "/notifications";
-            return (
-              <Link key={href} href={href}>
-                <div
-                  data-testid={`nav-${label.toLowerCase().replace(/\s/g, "-")}`}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer group",
-                    active
-                      ? "bg-indigo-600 text-white"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800"
-                  )}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span className="flex-1">{label}</span>
-                  {isNotif && unreadCount > 0 && (
-                    <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
-                      {unreadCount}
-                    </span>
-                  )}
+          <div className="flex-1 px-1">
+            <NavLinks nav={nav} location={location} unreadCount={unreadCount} />
+
+            <div className="mt-6 space-y-3 rounded-[28px] border border-white/10 bg-white/5 p-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Trust signals</div>
+              {trustSignals.map(({ icon: Icon, label, body }) => (
+                <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+                    <Icon className="h-4 w-4 text-cyan-300" />
+                    {label}
+                  </div>
+                  <p className="text-xs leading-5 text-slate-400">{body}</p>
                 </div>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="px-3 py-4 border-t border-slate-800">
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {user?.name?.[0]?.toUpperCase()}
+              ))}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-white text-sm font-medium truncate">{user?.name}</div>
+          </div>
+
+          <div className="mt-6 rounded-[28px] border border-white/10 bg-white/5 p-4">
+            <div className="mb-3 flex items-center gap-3 px-1">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-bold text-cyan-100">
+                {user?.name?.[0]?.toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-white">{user?.name}</div>
+                <div className="text-xs text-slate-400">{getRoleLabel(role)}</div>
+              </div>
               {user?.rating != null && (
-                <div className="flex items-center gap-1 text-slate-400 text-xs">
-                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                <div className="flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-xs text-amber-200">
+                  <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
                   {user.rating.toFixed(1)}
                 </div>
               )}
             </div>
+            <button
+              onClick={logout}
+              data-testid="button-logout"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 px-3 py-3 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/5 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
           </div>
-          <button
-            onClick={logout}
-            data-testid="button-logout"
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign out
-          </button>
-        </div>
-      </aside>
+        </aside>
 
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/70 px-4 py-3 backdrop-blur lg:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500">
+                  <MapPin className="h-4 w-4 text-slate-950" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold uppercase tracking-[0.16em] text-cyan-200">ChainTrack</div>
+                  <div className="text-xs text-slate-400">{roleLabel}</div>
+                </div>
+              </div>
+
+              <Drawer>
+                <DrawerTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-2xl border-white/10 bg-white/5 text-white">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className="border-white/10 bg-slate-950 text-white">
+                  <DrawerHeader>
+                    <DrawerTitle>Portal menu</DrawerTitle>
+                    <DrawerDescription className="text-slate-400">
+                      Navigate your railway cargo workflow, records, and alerts.
+                    </DrawerDescription>
+                  </DrawerHeader>
+
+                  <div className="space-y-5 px-4 pb-6">
+                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-bold text-cyan-100">
+                          {user?.name?.[0]?.toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-white">{user?.name}</div>
+                          <div className="text-xs text-slate-400">{getRoleLabel(role)}</div>
+                        </div>
+                        {user?.rating != null && (
+                          <div className="flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-xs text-amber-200">
+                            <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
+                            {user.rating.toFixed(1)}
+                          </div>
+                        )}
+                      </div>
+
+                      <NavLinks nav={nav} location={location} unreadCount={unreadCount} />
+                    </div>
+
+                    <button
+                      onClick={logout}
+                      data-testid="button-logout-mobile"
+                      className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 px-3 py-3 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/5 hover:text-white"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </button>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </div>
+          </header>
+
+          {isMobile && (
+            <div className="border-b border-cyan-400/10 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100 lg:hidden">
+              Expected unload station, train handoff proof, and dispute visibility stay attached to each consignment.
+            </div>
+          )}
+
+          <main className="flex-1 overflow-auto">{children}</main>
+        </div>
+      </div>
     </div>
   );
 }

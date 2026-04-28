@@ -111,7 +111,7 @@ paths:
     get:
       operationId: listRequests
       tags: [requests]
-      summary: List service requests
+      summary: List consignments visible to the current portal
       security:
         - bearerAuth: []
       parameters:
@@ -124,7 +124,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [customer, provider]
+            enum: [shipper, receiver, railway_monitor, train_staff]
         - name: limit
           in: query
           schema:
@@ -146,7 +146,7 @@ paths:
     post:
       operationId: createRequest
       tags: [requests]
-      summary: Create a service request
+      summary: Create a railway cargo consignment
       security:
         - bearerAuth: []
       requestBody:
@@ -188,7 +188,7 @@ paths:
     get:
       operationId: listAvailableRequests
       tags: [requests]
-      summary: List available requests for providers to accept
+      summary: List unassigned consignments for train staff to accept
       security:
         - bearerAuth: []
       responses:
@@ -257,7 +257,7 @@ paths:
     post:
       operationId: acceptRequest
       tags: [requests]
-      summary: Provider accepts a request
+      summary: Train staff accepts a consignment
       security:
         - bearerAuth: []
       parameters:
@@ -355,7 +355,7 @@ paths:
     post:
       operationId: addTrackingUpdate
       tags: [tracking]
-      summary: Add a tracking update (provider only)
+      summary: Add a tracking update (train staff only)
       security:
         - bearerAuth: []
       parameters:
@@ -507,7 +507,7 @@ paths:
     get:
       operationId: getCustomerDashboard
       tags: [dashboard]
-      summary: Get customer dashboard summary
+      summary: Get shipper dashboard summary
       security:
         - bearerAuth: []
       responses:
@@ -522,7 +522,7 @@ paths:
     get:
       operationId: getProviderDashboard
       tags: [dashboard]
-      summary: Get provider dashboard summary
+      summary: Get train staff dashboard summary
       security:
         - bearerAuth: []
       responses:
@@ -606,7 +606,7 @@ components:
           minLength: 6
         role:
           type: string
-          enum: [customer, provider]
+          enum: [shipper, receiver, railway_monitor, train_staff]
         phone:
           type: string
         vehicleType:
@@ -644,7 +644,7 @@ components:
           type: string
         role:
           type: string
-          enum: [customer, provider]
+          enum: [shipper, receiver, railway_monitor, train_staff]
         phone:
           type: string
           nullable: true
@@ -667,6 +667,42 @@ components:
     CreateRequestBody:
       type: object
       properties:
+        receiverName:
+          type: string
+        receiverPhone:
+          type: string
+        receiverEmail:
+          type: string
+          format: email
+        receiverBusiness:
+          type: string
+          nullable: true
+        consignmentId:
+          type: string
+        bookingReference:
+          type: string
+        invoiceReference:
+          type: string
+          nullable: true
+        originStation:
+          type: string
+        destinationStation:
+          type: string
+        expectedUnloadStation:
+          type: string
+        trainReference:
+          type: string
+        coachOrWagon:
+          type: string
+          nullable: true
+        cargoCategory:
+          type: string
+        declaredValue:
+          type: number
+          nullable: true
+        riskNote:
+          type: string
+          nullable: true
         pickupLocation:
           type: string
         dropLocation:
@@ -698,7 +734,23 @@ components:
           type: string
           format: date-time
           nullable: true
-      required: [pickupLocation, dropLocation, description, serviceType]
+      required:
+        [
+          receiverName,
+          receiverPhone,
+          receiverEmail,
+          consignmentId,
+          bookingReference,
+          originStation,
+          destinationStation,
+          expectedUnloadStation,
+          trainReference,
+          cargoCategory,
+          pickupLocation,
+          dropLocation,
+          description,
+          serviceType
+        ]
 
     EstimateBody:
       type: object
@@ -748,6 +800,52 @@ components:
           type: integer
         providerId:
           type: integer
+          nullable: true
+        receiverName:
+          type: string
+          nullable: true
+        receiverPhone:
+          type: string
+          nullable: true
+        receiverEmail:
+          type: string
+          format: email
+          nullable: true
+        receiverBusiness:
+          type: string
+          nullable: true
+        consignmentId:
+          type: string
+          nullable: true
+        bookingReference:
+          type: string
+          nullable: true
+        invoiceReference:
+          type: string
+          nullable: true
+        originStation:
+          type: string
+          nullable: true
+        destinationStation:
+          type: string
+          nullable: true
+        expectedUnloadStation:
+          type: string
+          nullable: true
+        trainReference:
+          type: string
+          nullable: true
+        coachOrWagon:
+          type: string
+          nullable: true
+        cargoCategory:
+          type: string
+          nullable: true
+        declaredValue:
+          type: number
+          nullable: true
+        riskNote:
+          type: string
           nullable: true
         pickupLocation:
           type: string

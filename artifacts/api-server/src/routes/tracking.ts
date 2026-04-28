@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db, trackingUpdatesTable, requestsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { AddTrackingUpdateBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { canAccessRequest } from "../lib/request-access";
 
 const router: IRouter = Router();
 
@@ -13,6 +14,11 @@ router.get("/tracking/:requestId", requireAuth, async (req, res): Promise<void> 
   const [request] = await db.select().from(requestsTable).where(eq(requestsTable.id, requestId));
   if (!request) {
     res.status(404).json({ error: "Request not found" });
+    return;
+  }
+
+  if (!canAccessRequest(request, req.user!, { allowRequestedToTrainStaff: true })) {
+    res.status(403).json({ error: "Not authorized to view this tracking history" });
     return;
   }
 
@@ -31,8 +37,8 @@ router.get("/tracking/:requestId", requireAuth, async (req, res): Promise<void> 
 });
 
 router.post("/tracking/:requestId", requireAuth, async (req, res): Promise<void> => {
-  if (req.user!.role !== "provider") {
-    res.status(403).json({ error: "Providers only" });
+  if (req.user!.role !== "train_staff") {
+    res.status(403).json({ error: "Train staff only" });
     return;
   }
 
@@ -42,6 +48,17 @@ router.post("/tracking/:requestId", requireAuth, async (req, res): Promise<void>
   const parsed = AddTrackingUpdateBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [request] = await db.select().from(requestsTable).where(eq(requestsTable.id, requestId));
+  if (!request) {
+    res.status(404).json({ error: "Request not found" });
+    return;
+  }
+
+  if (request.providerId !== req.user!.userId) {
+    res.status(403).json({ error: "This consignment is not assigned to you" });
     return;
   }
 

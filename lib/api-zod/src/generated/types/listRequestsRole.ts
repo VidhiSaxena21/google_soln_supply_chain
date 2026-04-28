@@ -10,6 +10,8 @@ export type ListRequestsRole =
   (typeof ListRequestsRole)[keyof typeof ListRequestsRole];
 
 export const ListRequestsRole = {
-  customer: "customer",
-  provider: "provider",
+  shipper: "shipper",
+  receiver: "receiver",
+  railway_monitor: "railway_monitor",
+  train_staff: "train_staff",
 } as const;

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
+import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import DashboardPage from "@/pages/dashboard";
@@ -23,18 +24,47 @@ const queryClient = new QueryClient({
   },
 });
 
+function FullScreenLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-950">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+    </div>
+  );
+}
+
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>;
+
+  if (isLoading) return <FullScreenLoader />;
   if (!user) return <Redirect to="/login" />;
-  return <Layout><Component /></Layout>;
+
+  return (
+    <Layout>
+      <Component />
+    </Layout>
+  );
 }
 
 function AuthRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>;
+
+  if (isLoading) return <FullScreenLoader />;
   if (user) return <Redirect to="/" />;
+
   return <Component />;
+}
+
+function HomeRoute() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return <FullScreenLoader />;
+  if (!user) return <LandingPage />;
+
+  return (
+    <Layout>
+      <DashboardPage />
+    </Layout>
+  );
 }
 
 function Router() {
@@ -42,7 +72,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={() => <AuthRoute component={LoginPage} />} />
       <Route path="/register" component={() => <AuthRoute component={RegisterPage} />} />
-      <Route path="/" component={() => <ProtectedRoute component={DashboardPage} />} />
+      <Route path="/" component={HomeRoute} />
       <Route path="/requests/new" component={() => <ProtectedRoute component={NewRequestPage} />} />
       <Route path="/requests/:id" component={() => <ProtectedRoute component={RequestDetailPage} />} />
       <Route path="/requests" component={() => <ProtectedRoute component={RequestsPage} />} />

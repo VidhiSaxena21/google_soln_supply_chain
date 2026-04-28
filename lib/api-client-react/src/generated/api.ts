@@ -368,7 +368,7 @@ export function useGetMe<
 }
 
 /**
- * @summary List service requests
+ * @summary List consignments visible to the current portal
  */
 export const getListRequestsUrl = (params?: ListRequestsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -435,7 +435,7 @@ export type ListRequestsQueryResult = NonNullable<
 export type ListRequestsQueryError = ErrorType<unknown>;
 
 /**
- * @summary List service requests
+ * @summary List consignments visible to the current portal
  */
 
 export function useListRequests<
@@ -462,7 +462,7 @@ export function useListRequests<
 }
 
 /**
- * @summary Create a service request
+ * @summary Create a railway cargo consignment
  */
 export const getCreateRequestUrl = () => {
   return `/api/requests`;
@@ -525,7 +525,7 @@ export type CreateRequestMutationBody = BodyType<CreateRequestBody>;
 export type CreateRequestMutationError = ErrorType<unknown>;
 
 /**
- * @summary Create a service request
+ * @summary Create a railway cargo consignment
  */
 export const useCreateRequest = <
   TError = ErrorType<unknown>,
@@ -634,7 +634,7 @@ export const useEstimatePrice = <
 };
 
 /**
- * @summary List available requests for providers to accept
+ * @summary List unassigned consignments for train staff to accept
  */
 export const getListAvailableRequestsUrl = () => {
   return `/api/requests/available`;
@@ -685,7 +685,7 @@ export type ListAvailableRequestsQueryResult = NonNullable<
 export type ListAvailableRequestsQueryError = ErrorType<unknown>;
 
 /**
- * @summary List available requests for providers to accept
+ * @summary List unassigned consignments for train staff to accept
  */
 
 export function useListAvailableRequests<
@@ -883,7 +883,7 @@ export const useUpdateRequestStatus = <
 };
 
 /**
- * @summary Provider accepts a request
+ * @summary Train staff accepts a consignment
  */
 export const getAcceptRequestUrl = (id: number) => {
   return `/api/requests/${id}/accept`;
@@ -944,7 +944,7 @@ export type AcceptRequestMutationResult = NonNullable<
 export type AcceptRequestMutationError = ErrorType<unknown>;
 
 /**
- * @summary Provider accepts a request
+ * @summary Train staff accepts a consignment
  */
 export const useAcceptRequest = <
   TError = ErrorType<unknown>,
@@ -1300,7 +1300,7 @@ export function useGetTracking<
 }
 
 /**
- * @summary Add a tracking update (provider only)
+ * @summary Add a tracking update (train staff only)
  */
 export const getAddTrackingUpdateUrl = (requestId: number) => {
   return `/api/tracking/${requestId}`;
@@ -1364,7 +1364,7 @@ export type AddTrackingUpdateMutationBody = BodyType<TrackingUpdateBody>;
 export type AddTrackingUpdateMutationError = ErrorType<unknown>;
 
 /**
- * @summary Add a tracking update (provider only)
+ * @summary Add a tracking update (train staff only)
  */
 export const useAddTrackingUpdate = <
   TError = ErrorType<unknown>,
@@ -1895,7 +1895,7 @@ export const useResolveDispute = <
 };
 
 /**
- * @summary Get customer dashboard summary
+ * @summary Get shipper dashboard summary
  */
 export const getGetCustomerDashboardUrl = () => {
   return `/api/dashboard/customer`;
@@ -1946,7 +1946,7 @@ export type GetCustomerDashboardQueryResult = NonNullable<
 export type GetCustomerDashboardQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get customer dashboard summary
+ * @summary Get shipper dashboard summary
  */
 
 export function useGetCustomerDashboard<
@@ -1970,7 +1970,7 @@ export function useGetCustomerDashboard<
 }
 
 /**
- * @summary Get provider dashboard summary
+ * @summary Get train staff dashboard summary
  */
 export const getGetProviderDashboardUrl = () => {
   return `/api/dashboard/provider`;
@@ -2021,7 +2021,7 @@ export type GetProviderDashboardQueryResult = NonNullable<
 export type GetProviderDashboardQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get provider dashboard summary
+ * @summary Get train staff dashboard summary
  */
 
 export function useGetProviderDashboard<

@@ -18,8 +18,10 @@ export type RegisterBodyRole =
   (typeof RegisterBodyRole)[keyof typeof RegisterBodyRole];
 
 export const RegisterBodyRole = {
-  customer: "customer",
-  provider: "provider",
+  shipper: "shipper",
+  receiver: "receiver",
+  railway_monitor: "railway_monitor",
+  train_staff: "train_staff",
 } as const;
 
 export interface RegisterBody {
@@ -40,8 +42,10 @@ export interface LoginBody {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const UserRole = {
-  customer: "customer",
-  provider: "provider",
+  shipper: "shipper",
+  receiver: "receiver",
+  railway_monitor: "railway_monitor",
+  train_staff: "train_staff",
 } as const;
 
 export interface User {
@@ -72,6 +76,21 @@ export const CreateRequestBodyServiceType = {
 } as const;
 
 export interface CreateRequestBody {
+  receiverName: string;
+  receiverPhone: string;
+  receiverEmail: string;
+  receiverBusiness?: string | null;
+  consignmentId: string;
+  bookingReference: string;
+  invoiceReference?: string | null;
+  originStation: string;
+  destinationStation: string;
+  expectedUnloadStation: string;
+  trainReference: string;
+  coachOrWagon?: string | null;
+  cargoCategory: string;
+  declaredValue?: number | null;
+  riskNote?: string | null;
   pickupLocation: string;
   dropLocation: string;
   pickupLat?: number | null;
@@ -139,6 +158,21 @@ export interface ServiceRequest {
   id: number;
   customerId: number;
   providerId?: number | null;
+  receiverName?: string | null;
+  receiverPhone?: string | null;
+  receiverEmail?: string | null;
+  receiverBusiness?: string | null;
+  consignmentId?: string | null;
+  bookingReference?: string | null;
+  invoiceReference?: string | null;
+  originStation?: string | null;
+  destinationStation?: string | null;
+  expectedUnloadStation?: string | null;
+  trainReference?: string | null;
+  coachOrWagon?: string | null;
+  cargoCategory?: string | null;
+  declaredValue?: number | null;
+  riskNote?: string | null;
   pickupLocation: string;
   dropLocation: string;
   pickupLat?: number | null;
@@ -353,6 +387,8 @@ export type ListRequestsRole =
   (typeof ListRequestsRole)[keyof typeof ListRequestsRole];
 
 export const ListRequestsRole = {
-  customer: "customer",
-  provider: "provider",
+  shipper: "shipper",
+  receiver: "receiver",
+  railway_monitor: "railway_monitor",
+  train_staff: "train_staff",
 } as const;

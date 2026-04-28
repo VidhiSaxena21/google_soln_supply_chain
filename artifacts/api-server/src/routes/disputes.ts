@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db, disputesTable, requestsTable, usersTable } from "@workspace/db";
-import { eq, or, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { CreateDisputeBody, ResolveDisputeBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { canAccessRequest } from "../lib/request-access";
 
 const router: IRouter = Router();
 
@@ -29,9 +30,24 @@ async function enrichDispute(dispute: typeof disputesTable.$inferSelect) {
 
 router.get("/disputes", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
-  const disputes = await db.select().from(disputesTable)
-    .where(eq(disputesTable.raisedById, userId))
-    .orderBy(desc(disputesTable.createdAt));
+  let disputes = await db.select().from(disputesTable).orderBy(desc(disputesTable.createdAt));
+
+  if (req.user!.role !== "railway_monitor") {
+    const visibleDisputes = await Promise.all(disputes.map(async (dispute) => {
+      if (dispute.raisedById === userId) {
+        return dispute;
+      }
+
+      const [requestRow] = await db.select().from(requestsTable).where(eq(requestsTable.id, dispute.requestId));
+      if (!requestRow) {
+        return null;
+      }
+
+      return canAccessRequest(requestRow, req.user!, { allowRequestedToTrainStaff: true }) ? dispute : null;
+    }));
+
+    disputes = visibleDisputes.filter(Boolean) as typeof disputesTable.$inferSelect[];
+  }
 
   const enriched = await Promise.all(disputes.map(enrichDispute));
   res.json({ disputes: enriched });
@@ -41,6 +57,17 @@ router.post("/disputes", requireAuth, async (req, res): Promise<void> => {
   const parsed = CreateDisputeBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [requestRow] = await db.select().from(requestsTable).where(eq(requestsTable.id, parsed.data.requestId));
+  if (!requestRow) {
+    res.status(404).json({ error: "Request not found" });
+    return;
+  }
+
+  if (!canAccessRequest(requestRow, req.user!, { allowRequestedToTrainStaff: true })) {
+    res.status(403).json({ error: "Not authorized to raise a dispute for this consignment" });
     return;
   }
 
@@ -65,11 +92,25 @@ router.get("/disputes/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Dispute not found" });
     return;
   }
+
+  if (req.user!.role !== "railway_monitor" && dispute.raisedById !== req.user!.userId) {
+    const [requestRow] = await db.select().from(requestsTable).where(eq(requestsTable.id, dispute.requestId));
+    if (!requestRow || !canAccessRequest(requestRow, req.user!, { allowRequestedToTrainStaff: true })) {
+      res.status(403).json({ error: "Not authorized to view this dispute" });
+      return;
+    }
+  }
+
   const enriched = await enrichDispute(dispute);
   res.json(enriched);
 });
 
 router.patch("/disputes/:id/resolve", requireAuth, async (req, res): Promise<void> => {
+  if (req.user!.role !== "railway_monitor") {
+    res.status(403).json({ error: "Railway monitor only" });
+    return;
+  }
+
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
 
